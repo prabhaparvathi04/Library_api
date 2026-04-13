@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Library System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <header class="page-header">
+        <div>
+            <span class="eyebrow">Library</span>
+            <h1>Library Management System</h1>
+            <p class="hero-copy">Manage books, borrowers, and chat with your library assistant in one clean dashboard.</p>
+        </div>
+    </header>
+
+    <div class="layout-grid">
+        <main class="content-panel">
+            <section class="card card-highlight">
+                <div class="panel-header">
+                    <h2>Book Inventory</h2>
+                    <button id="show" class="secondary-btn">Refresh</button>
+                </div>
+                <form id="book-form" action="/books/form" method="post" class="form-grid">
+                    <input type="hidden" id="book-id" name="book_id" value="">
+                    <input id="book_title" name="book_title" placeholder="Title" required>
+                    <input id="author" name="author" placeholder="Author" required>
+                    <input id="category" name="category" placeholder="Category" required>
+                    <input id="isbn" name="isbn" placeholder="ISBN" required>
+                    <input id="total_copies" type="number" name="total_copies" placeholder="Total copies" required>
+                    <input id="available_copies" type="number" name="available_copies" placeholder="Available copies" required>
+                    <select id="status" name="status">
+                        <option value="Available">Available</option>
+                        <option value="Borrowed">Borrowed</option>
+                        <option value="Returned">Returned</option>
+                    </select>
+                    <div class="form-actions">
+                        <button id="form-submit" type="submit">Add Book</button>
+                        <button id="cancel-edit" type="button" class="secondary-btn" style="display:none;">Cancel</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="card data-card">
+                <table id="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Total</th>
+                            <th>Available</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="body">
+                    {% for b in books %}
+                        <tr>
+                            <td>{{ b.id }}</td>
+                            <td>{{ b.book_title }}</td>
+                            <td>{{ b.author }}</td>
+                            <td>{{ b.category }}</td>
+                            <td>{{ b.total_copies }}</td>
+                            <td>{{ b.available_copies }}</td>
+                            <td class="status {{ b.status }}">{{ b.status }}</td>
+                            <td class="actions-cell">
+                                <a href="/borrow/{{ b.id }}" class="action-link borrow">Borrow</a>
+                                <a href="/return/{{ b.id }}" class="action-link return">Return</a>
+                                <a href="/delete/{{ b.id }}" class="action-link delete">Delete</a>
+                                <button type="button" class="edit-button" data-id="{{ b.id }}" data-title="{{ b.book_title }}" data-author="{{ b.author }}" data-category="{{ b.category }}" data-isbn="{{ b.isbn }}" data-total="{{ b.total_copies }}" data-available="{{ b.available_copies }}" data-status="{{ b.status }}">Update</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </main>
+
+        <aside class="chat-aside">
+            <section class="card sticky-chat">
+                <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">Assistant</span>
+                        <h2>Library Chatbot</h2>
+                    </div>
+                </div>
+                <form id="chat-form" class="chat-form">
+                    <input id="chat-question" type="text" placeholder="Ask about books, authors, availability..." required>
+                    <button type="submit">Ask</button>
+                </form>
+                <div id="chat-response" class="chat-response">Ask a question about your library inventory.</div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+<script>
+document.getElementById("show").onclick = async () => {
+    let res = await fetch("/books");
+    let data = await res.json();
+
+    let body = document.getElementById("body");
+    body.innerHTML = "";
+
+    data.forEach(b => {
+        body.innerHTML += `
+        <tr>
+            <td>${b.id}</td>
+            <td>${b.book_title}</td>
+            <td>${b.author}</td>
+            <td>${b.category}</td>
+            <td>${b.total_copies}</td>
+            <td>${b.available_copies}</td>
+            <td>${b.status}</td>
+            <td>
+                <a href="/borrow/${b.id}">Borrow</a> |
+                <a href="/return/${b.id}">Return</a> |
+                <a href="/delete/${b.id}">Delete</a> |
+                <button type="button" class="edit-button" data-id="${b.id}" data-title="${b.book_title}" data-author="${b.author}" data-category="${b.category}" data-isbn="${b.isbn}" data-total="${b.total_copies}" data-available="${b.available_copies}" data-status="${b.status}">Update</button>
+            </td>
+        </tr>`;
+    });
+};
+
+document.getElementById("chat-form").onsubmit = async event => {
+    event.preventDefault();
+    let question = document.getElementById("chat-question").value;
+    let res = await fetch("/chat-mini", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({message: question})
+    });
+    let data = await res.json();
+    document.getElementById("chat-response").innerText = data.response;
+};
+
+    function resetForm() {
+        const form = document.getElementById("book-form");
+        form.action = "/books/form";
+        document.getElementById("book-id").value = "";
+        document.getElementById("book_title").value = "";
+        document.getElementById("author").value = "";
+        document.getElementById("category").value = "";
+        document.getElementById("isbn").value = "";
+        document.getElementById("total_copies").value = "";
+        document.getElementById("available_copies").value = "";
+        document.getElementById("status").value = "Available";
+        document.getElementById("form-submit").innerText = "Add Book";
+        document.getElementById("cancel-edit").style.display = "none";
+    }
+
+    document.getElementById("cancel-edit").onclick = resetForm;
+
+    document.addEventListener("click", event => {
+        if (!event.target.classList.contains("edit-button")) return;
+
+        const button = event.target;
+        const bookId = button.dataset.id;
+        document.getElementById("book-form").action = `/books/update/${bookId}`;
+        document.getElementById("book-id").value = bookId;
+        document.getElementById("book_title").value = button.dataset.title;
+        document.getElementById("author").value = button.dataset.author;
+        document.getElementById("category").value = button.dataset.category;
+        document.getElementById("isbn").value = button.dataset.isbn;
+        document.getElementById("total_copies").value = button.dataset.total;
+        document.getElementById("available_copies").value = button.dataset.available;
+        document.getElementById("status").value = button.dataset.status;
+        document.getElementById("form-submit").innerText = "Update Book";
+        document.getElementById("cancel-edit").style.display = "inline-block";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+</script>
+</body>
+</html>

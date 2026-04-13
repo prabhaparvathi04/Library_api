@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+pydantic
+jinja2==3.0.3
+python-multipart
