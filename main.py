@@ -43,7 +43,7 @@ class BookCreate(BaseModel):
 class ChatRequest(BaseModel):
     message: str
 # ================= DATABASE =================
-DATABASE_URL = "mysql+pymysql://root:0320@localhost/library_db"
+DATABASE_URL = "mysql+pymysql://root:8667@localhost/library_db"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
